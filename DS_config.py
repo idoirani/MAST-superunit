@@ -3,7 +3,7 @@
 Configuration file for DeepSpec.py class definitions
 """
 
-path_sdk = r'C:\Users\idoi\Dropbox\DeepSpec\Detectors\sdk\python\22.5'
+path_sdk = r'C:\Users\idoi\Dropbox\MAST\Deep_Spec\detectors\DeepSpec_control'
 
 CameraIP_1 = '192.168.1.231'
 CameraIP_2 = '192.168.1.232'

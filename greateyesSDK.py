@@ -1421,4 +1421,3 @@ def StopMeasurement(addr = 0):
 
     # returning return value
     return retValue
-
