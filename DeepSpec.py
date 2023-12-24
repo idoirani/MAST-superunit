@@ -46,7 +46,7 @@ class CamApi(object):
         self.bitpix = 0                     # number of bits per pixel
         self.logger = self.setup_logger(f'camera_{id}')
         self.connectionType = ge.connectionType_Ethernet # or ge.ConnectionType_USB instead`
-    def setup_logger(self, name, log_file=f'camera_log_{id}.log', level=logging.INFO):
+    def setup_logger(self, name, log_file=-1, level=logging.INFO):
         '''
         Sets up a logger for each instance of CamApi.
         IN:       name                name of logger
@@ -56,6 +56,8 @@ class CamApi(object):
         last update: 24-12-2023
         author: Ido Irani
         '''
+        if log_file == -1:
+            log_file =  path_logging + '\camera_log_{0}.log'.format(self.band)
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
         handler = logging.FileHandler(log_file)        
         handler.setFormatter(formatter)
@@ -92,21 +94,21 @@ class CamApi(object):
         if verbose:
             self.logger.info('\n-----------------------------------------------------\n')
             self.logger.info('Gathering Camera information:')
-            self.logger.info('   Firmware Version:', ge.GetFirmwareVersion(addr = self.id))
-            self.logger.info('   Image Size:',size[0:2] )
-            self.logger.info('   Digital Resolution:', ge.GetImageSize(addr = self.id)[2] * 8, 'bit')
-            self.logger.info('   Pixel Size: ', ge.GetSizeOfPixel(addr = self.id), 'um')
-            self.logger.info('   Camera is busy:', ge.DllIsBusy(addr = self.id))
-            self.logger.info('   max. Exposure time:', ge.GetMaxExposureTime(addr = self.id), 'ms')
-            self.logger.info('   max. binning x:', ge.GetMaxBinningX(addr = self.id), 'y:', ge.GetMaxBinningY(addr = self.id))
-            self.logger.info('   camera supports capacity mode:', ge.SupportedSensorFeature(ge.sensorFeature_capacityMode,addr = self.id))
-            self.logger.info('   camera supports horizontal hardware binning:', ge.SupportedSensorFeature(ge.sensorFeature_binningX))
-            self.logger.info('   camera supports horizontal hardware cropping:', ge.SupportedSensorFeature(ge.sensorFeature_cropX))
-            self.logger.info('   camera provides the following output mode(s):')
+            self.logger.info('   Firmware Version: %s', ge.GetFirmwareVersion(addr = self.id))
+            self.logger.info('   Image Size: %s',size[0:2] )
+            self.logger.info('   Digital Resolution: %s bit', ge.GetImageSize(addr = self.id)[2] * 8)
+            self.logger.info('   Pixel Size: %s um', ge.GetSizeOfPixel(addr = self.id))
+            self.logger.info('   Camera is busy: %s', ge.DllIsBusy(addr = self.id))
+            self.logger.info('   max. Exposure time: %s ms', ge.GetMaxExposureTime(addr = self.id))
+            self.logger.info('   max. binning x: %s y: %s', ge.GetMaxBinningX(addr = self.id), ge.GetMaxBinningY(addr = self.id))
+            self.logger.info('   camera supports capacity mode: %s', ge.SupportedSensorFeature(ge.sensorFeature_capacityMode,addr = self.id))
+            self.logger.info('   camera supports horizontal hardware binning: %s', ge.SupportedSensorFeature(ge.sensorFeature_binningX))
+            self.logger.info('   camera supports horizontal hardware cropping: %s', ge.SupportedSensorFeature(ge.sensorFeature_cropX))
+            self.logger.info('   camera provides the following output mode(s): ')
             NumberOfOutputModes = ge.GetNumberOfSensorOutputModes(addr = self.id)
             for i in range(NumberOfOutputModes):
-                self.logger.info('      mode ' + str(i) + ':', ge.GetSensorOutputModeStrings(i,addr = self.id))
-            ge.SetupSensorOutputMode(NumberOfOutputModes-1,addr = self.id)
+                self.logger.info('      mode ' + str(i) + ': %s', ge.GetSensorOutputModeStrings(i,addr = self.id))
+                ge.SetupSensorOutputMode(NumberOfOutputModes-1,addr = self.id)
         pass
     
 
@@ -155,7 +157,7 @@ class CamApi(object):
         connectionSetupWorked = ge.SetupCameraInterface(self.connectionType, ipAddress=self.IP, addr =  self.id)
         if connectionSetupWorked:
             connectionSetupWorked = ge.ConnectToSingleCameraServer(addr = self.id)
-            self.logger.info('using TCP connection on ip address:', self.IP)
+            self.logger.info('using TCP connection on ip address: %s', self.IP)
         self.logger.info('\n-----------------------------------------------------\n')
         self.logger.info('connecting to camera')
         CameraConnected = self.connected
@@ -164,7 +166,7 @@ class CamApi(object):
         if (CameraConnected == True):
             CameraModelID = CameraModel[0]
             CameraModelStr = CameraModel[1]
-            self.logger.info('   connected to camera ' + CameraModelStr)
+            self.logger.info('   connected to camera %s', CameraModelStr)
             self.connected = True
         self.logger.info('initializing camera')
         init = self.initialize()
@@ -192,13 +194,13 @@ class CamApi(object):
         Cooling_limits = ge.TemperatureControl_Init(addr = self.id)
         if verbose:
             self.logger.info('   Temperature values shall be in this range:')
-            self.logger.info('      lowest possible setpoint =', Cooling_limits[0], '°C')
-            self.logger.info('      highest possible setpoint =', Cooling_limits[1], '°C')
-            self.logger.info('      highest possible setpoint =', Cooling_limits[1], '°C')
+            self.logger.info('      lowest possible setpoint = %s °C', Cooling_limits[0])
+            self.logger.info('      highest possible setpoint = %s °C', Cooling_limits[1])
+            self.logger.info('      highest possible setpoint = %s °C', Cooling_limits[1])
             self.logger.info('   Actual Temperatures are:')
-            self.logger.info('      CCD (TEC frontside):', ge.TemperatureControl_GetTemperature(0,addr = self.id), '°C')
-            self.logger.info('      TEC backside:', ge.TemperatureControl_GetTemperature(1,addr = self.id), '°C')
-            self.logger.info('   Setting {0} °C'.format(self.T_goal))
+            self.logger.info('      CCD (TEC frontside): = %s °C', ge.TemperatureControl_GetTemperature(0,addr = self.id))
+            self.logger.info('      TEC backside: = %s °C', ge.TemperatureControl_GetTemperature(1,addr = self.id))
+            self.logger.info('   Setting %s °C',self.T_goal)
         if ge.TemperatureControl_SetTemperature(self.T_goal) == True:
             x = 0
             n = 0
@@ -206,9 +208,9 @@ class CamApi(object):
                 self.logger.info('monitoring until goal temperature is reached or until max attempts')
             while x == 0:
                 Temp = ge.TemperatureControl_GetTemperature(0,addr = self.id)
+                backTemp = ge.TemperatureControl_GetTemperature(1,addr = self.id)
                 dT = np.abs(Temp - self.T_goal)
-                self.logger.info('  ', 10*n, 's   T_CCD:', Temp, '°C', '   T_back:',
-                      ge.TemperatureControl_GetTemperature(1,addr = self.id), '°C')
+                self.logger.info('  %s s   T_CCD: %s °C \n   T_back: %s °C', str(10*n), Temp,backTemp) 
                 n+=1
                 if dT<1:
                     x = 1
@@ -243,10 +245,10 @@ class CamApi(object):
             self.cooled = False
             while x == 0:
                 Temp = ge.TemperatureControl_GetTemperature(0,addr = self.id)
+                backTemp = ge.TemperatureControl_GetTemperature(1,addr = self.id)
                 dT = np.abs(Temp - self.T_goal)
-                self.logger.info('  ', 10*n, 's   T_CCD:', Temp, '°C', '   T_back:',
-                      ge.TemperatureControl_GetTemperature(1,addr = self.id), '°C')
-                n+=1
+                self.logger.info('  %s s   T_CCD: %s °C \n   T_back: %s °C', str(10*n), Temp,backTemp) 
+
                 if dT<1:
                     x = 1
                 elif n>=n_max:
@@ -273,12 +275,12 @@ class CamApi(object):
         author: Ido Irani
         '''
         res = ge.SetBinningMode(binning[0], binning[1],addr = self.id) == True
-        self.logger.info('\n   Setting Binning at {0} x {1}'.format(int(binning[0]), int(binning[1])))
+        self.logger.info('\n   Setting Binning at %s x %s',int(binning[0]), int(binning[1]))
         if res:
-            self.logger.info('   Successfully set binning to {0} x {1}'.format(int(binning[0]), int(binning[1])))
+            self.logger.info('   Successfully set binning to  %s x %s',int(binning[0]), int(binning[1]))
             self.binning = binning
         else:
-            self.logger.error('   Error while setting binning {0} x {1}'.format(int(binning[0]), int(binning[1])))        
+            self.logger.error('   Error while setting binning  %s x %s',int(binning[0]), int(binning[1]))
         return res 
     
     def set_exposure_time(self,t_exp, **kwargs):
@@ -295,7 +297,7 @@ class CamApi(object):
         self.logger.info('\n-----------------------------------------------------\n')
         self.logger.info('setting measurement parameters:')
         if (exp):
-            self.logger.info('   exposure time set to', t_exp, 'ms')
+            self.logger.info('   exposure time set to %s ms', t_exp)
         self.logger.info('\n-----------------------------------------------------\n')        
         self.t_exp = t_exp
         return exp
@@ -318,12 +320,12 @@ class CamApi(object):
         speed = {0: '1 MHz', 3: '3 MHz', 5:'500 kHz',6:'50 kHz'}
         if readoutSpeed not in speed.keys():
             raise ValueError('not in the list of keys for permitted readout modes. These are: {0: 1 MHz, 3: 3 MHz, 5:500 kHz,6:50 kHz}')
-        self.logger.info('\n  Setting pixel readout frequency to {0}'.format(speed[readoutSpeed]))
+        self.logger.info('\n  Setting pixel readout frequency to %s',speed[readoutSpeed])
         res = ge.SetReadOutSpeed(ge.readoutSpeed_50_kHz,addr = self.id)
         if  res:
             self.logger.info('   Success')
         else:
-            self.logger.error('   Error while setting {0}'.format(speed[readoutSpeed]))
+            self.logger.error('   Error while setting %s',speed[readoutSpeed])
         self.readout_speed = readoutSpeed
         return res
         
@@ -418,8 +420,8 @@ class CamApi(object):
         self.logger.info('initializing sensor cooling')
         Cooling_limits = ge.TemperatureControl_Init(addr = self.id)
         self.logger.info('   Temperature values shall be in this range:')
-        self.logger.info('      lowest possible setpoint =', Cooling_limits[0], '°C')
-        self.logger.info('      highest possible setpoint =', Cooling_limits[1], '°C')
+        self.logger.info('      lowest possible setpoint = %s °C', Cooling_limits[0])
+        self.logger.info('      highest possible setpoint = %s °C', Cooling_limits[1])
         self.logger.info('   Actual Temperatures are:')
         self.logger.info('      CCD (TEC frontside):', ge.TemperatureControl_GetTemperature(0,addr = self.id), '°C')
         self.logger.info('      TEC backside:', ge.TemperatureControl_GetTemperature(1,addr = self.id), '°C')  
