@@ -5,7 +5,7 @@ Configuration file for DeepSpec.py class definitions
 
 path_sdk = r'C:\Users\idoi\Dropbox\MAST\Deep_Spec\detectors\DeepSpec_control'
 path_logging =  r'C:\Users\idoi\Dropbox\MAST\Deep_Spec\detectors\DeepSpec_control\log'
-
+path_T_logging = r'C:\Users\idoi\Dropbox\MAST\Deep_Spec\detectors\DeepSpec_control\log'
 
 CameraIP_1 = '192.168.1.231'
 CameraIP_2 = '192.168.1.232'
@@ -34,7 +34,10 @@ FITS_std_head = {'NAXIS':'2',
 speed = {-1: 'NULL', 0: '1 MHz', 3: '3 MHz', 5:'500 kHz',6:'50 kHz'}
 
 
-FITS_HEADER_comment =   {'BAND': 'DEEPSPEC BAND' 
+FITS_HEADER_comment =   {'TELESCOPE': 'TELESCOPE NAME'
+                        ,'INSTRUMENT': 'INSTRUMENT NAME'
+                        ,'DETECTOR': 'DETECTOR MODEL'
+						,'BAND': 'DEEPSPEC BAND' 
 						,'CAMERA_IP': 'CAMERA IP' 
 						,'TYPE': 'EXPOSURE TYPE' 
 						,'LOCAL_T_START':  'EXPOSURE START TIME [local]' 
@@ -51,6 +54,7 @@ FITS_HEADER_comment =   {'BAND': 'DEEPSPEC BAND'
 						,'READOUT_SPEED': 'PIXEL READOUT FREQUENCY'
 						,'CDELT1': 'BINNING IN THE X DIRECTION' 
 						,'CDELT2': 'BINNING IN THE Y DIRECTION' 
+						,'NAXIS':'NUMBER OF AXES IN FRAME'     
 						,'NAXIS1':'NUMBER OF PIXELS IN THE X DIRECTION'     
 						,'NAXIS2':'NUMBER OF PIXELS IN THE Y DIRECTION'    
 						,'PIXEL_SIZE': 'PIXEL SIZE IN MICRONS'

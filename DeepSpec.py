@@ -8,6 +8,8 @@ Created on Wed Dec 24 2023
 @author: Ido Irani
 """
 
+from sre_constants import SUCCESS
+from tkinter import SE
 import numpy as np
 from DS_config import *
 import sys
@@ -23,7 +25,7 @@ import logging
 
 
 
-class CamApi(object):
+class CamAPI(object):
     '''
     This class is a wrapper for the SDK for controling a single DeepSpec Camera. It provides a set of functions to control the camera and to take measurements.
     last update: 24-12-2023
@@ -44,11 +46,12 @@ class CamApi(object):
         self.cooled = False                 # flag for cooling status
         self.initialized = False            # flag for initialization status
         self.bitpix = 0                     # number of bits per pixel
+        self.
         self.logger = self.setup_logger(f'camera_{id}')
         self.connectionType = ge.connectionType_Ethernet # or ge.ConnectionType_USB instead`
     def setup_logger(self, name, log_file=-1, level=logging.INFO):
         '''
-        Sets up a logger for each instance of CamApi.
+        Sets up a logger for each instance of CamAPI.
         IN:       name                name of logger
         IN:       log_file            name of log file
         IN:       level               logging level
@@ -487,7 +490,6 @@ class CamApi(object):
             if verbose:
                 self.logger.info('   ...finished\n')
             imageArray = ge.GetMeasurementData_DynBitDepth(addr = self.id)
-            hdu = fits.PrimaryHDU(imageArray)
             hdr = {}
             for key in FITS_std_head.keys():
                 hdr[key] = FITS_std_head[key]
@@ -508,6 +510,7 @@ class CamApi(object):
             hdr['READOUT_SPEED'] = speed[self.readout_speed] 
             hdr['CDELT1'] = self.binning[0]
             hdr['CDELT2'] = self.binning[1]
+            hdr['NAXIS'    ] = 2
             hdr['NAXIS1'    ] = self.sizex
             hdr['NAXIS2'    ] = self.sizey
             hdr['PIXEL_SIZE'] = self.pix_size
@@ -517,6 +520,206 @@ class CamApi(object):
             HDR = fits.Header()
             for key in hdr.keys():
                 HDR[key] = hdr[key]
-            hdul = fits.HDUList([HDR,hdu])
+            hdu = fits.PrimaryHDU(imageArray, header = HDR)
+            hdul = fits.HDUList([hdu])
             return hdul
+ 
         
+
+class DeepSpecAPI(object):
+    '''
+    This class is a wrapper for the SDK for controling the DeepSpec assembly. It provides a set of functions to control the instrument and to take measurements simultaneously with all cameras.
+    last update: 24-12-2023
+    author: Ido Irani
+    '''
+    def __init__(self, IP = [CameraIP_1, CameraIP_2, CameraIP_3, CameraIP_4]):
+        self.IP = IP
+        self.n_cams = len(IP)
+        self.connected = False
+        self.initialized = False
+        self.logger = self.setup_logger('DeepSpec')
+        self.connectionType = ge.connectionType_Ethernet # or ge.ConnectionType_USB instead`
+        self.cameras = []
+        self.cooled = False
+        for i in range(self.n_cams):
+            self.cameras.append(CamAPI(i, IP[i]))
+        self.bands = [self.cameras[i].band for i in range(self.n_cams)]
+        
+    
+    def setup_logger(self, name, log_file=-1, level=logging.INFO):
+        '''
+        Sets up a logger for each instance of CamAPI.
+        IN:       name                name of logger
+        IN:       log_file            name of log file
+        IN:       level               logging level
+        OUT:      logger              logger object
+        last update: 24-12-2023
+        author: Ido Irani
+        '''
+        if log_file == -1:
+            log_file =  path_logging + '\DeepSpec_log.log'
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        handler = logging.FileHandler(log_file)
+        handler.setFormatter(formatter)
+
+        logger = logging.getLogger(name)
+        logger.setLevel(level)
+        logger.addHandler(handler)
+        return logger
+    
+    def initialize(self):
+        '''
+        Initialize camera. Will try to initialize the camera at self.IP. If successful, it will set the binning mode to [1,1].
+        OUT:      initialized         boolean flag for success/failure of initialization
+        Result:   Bool                change self.initialized to True/False
+        last update: 24-12-2023)     
+        author: Ido Irani
+        '''
+        self.logger.info('initializing DeepSpec')
+        success = np.array([False]*self.n_cams)
+        for i in  range(self.n_cams):
+            self.logger.info('initializing camera %s', self.bands[i])
+            init = self.cameras[i].initialize()
+            success[i] = init
+            if not init:
+                self.logger.error('   Initialization failed. Status: {0}'.format(ge.StatusMSG))
+        if success.all():
+            self.initialized =  True
+        else:
+            self.initialized =  False  
+        return self.initialized
+    
+    def disconnect(self):
+        '''
+        Disconnect from DeepSpec. Will try to disconnect from the camera at self.IP. If successful, it will disconnect the camera.
+        OUT:      dis                 boolean flag for success/failure of disconnection
+        last update: 24-12-2023
+        author: Ido Irani
+        '''
+        self.logger.info('\n-----------------------------------------------------\n')
+        self.logger.info('disconnecting DeepSpec')
+        dis = np.array([False]*self.n_cams)
+        for i in  range(self.n_cams):
+            self.logger.info('disconnecting camera %s', self.bands[i])
+            dis[i] = self.cameras[i].disconnect()
+            if dis[i]:
+                self.logger.info('   ok')
+            else:
+                self.logger.error('   failed')
+        if dis.all():
+            self.logger.info('   DeepSpec disconnected')
+            self.connected =  False
+        else:
+            self.logger.error('   DeepSpec disconnect failed')
+            self.connected =  True
+        return dis
+    
+    def connect(self):
+        '''
+        Connect to DeepSpec. Will try to connect to the camera at self.IP. If successful, it will initialize the camera and set the binning mode to [1,1].
+        OUT:      connected           boolean flag for success/failure of connection
+        last update: 24-12-2023
+        author: Ido Irani
+        '''
+        # setup camera connection
+        self.logger.info('\n-----------------------------------------------------\n')
+        self.logger.info('setting up connection')
+        connected = np.array([False]*self.n_cams)
+        for i in range(self.n_cams):
+            self.cameras[i].connect()
+            connected[i] = self.cameras[i].connected
+            if connected[i]:
+                self.logger.info('   ok')
+            else:
+                self.logger.error('   failed')
+        if connected.all():
+            self.logger.info('   DeepSpec connected')
+            self.connected =  True
+        else:
+            self.logger.error('   DeepSpec connection failed')
+            self.connected =  False
+        return self.connected
+    
+    def cool(self, T_goal = -80, n_max = 0, verbose = True, path_fold = -1):
+        '''
+        Cool down to goal temperature. Will monitor until T_goal is reached and report backside and detector temperature every 10 seconds.
+        n_max is the numer of reports given before minotioring terminates. Control will continute either way. 
+        IN:       T_goal              goal temperature for cooling
+        IN:       n_max               number of reports given before minotioring terminates. Control will continute either way.
+        IN:       verbose             flag to print output
+        OUT:      cooled              boolean flag for success/failure of cooling
+        last update: 24-12-2023
+        author: Ido Irani
+        '''
+        if path_fold == -1:
+            #add to path date folder
+            path_fold = path_T_logging + '\\' + time.strftime("%Y%m%d", time.localtime())
+        self.logger.info('\n-----------------------------------------------------\n')
+        self.logger.info('cooling DeepSpec cameras')
+        cooled = np.array([False]*self.n_cams)
+        for i in range(self.n_cams):
+            cooled[i] = self.cameras[i].cool_and_log_temperature(self, T_goal,path_fold)
+        if cooled.all():
+            self.logger.info('  All detectors cooling')
+        else:
+            self.logger.error('   problem encountered during cooling setup')
+        self.cooled = cooled.all()
+        return cooled.all()
+        
+    def slit_pos(self, pos):
+        '''
+        PLACEHOLDER for slit control
+        '''
+        return True
+    def start_up(self, t_exp_ms = 1, binning = [1,1], readoutSpeed = 6):
+        '''
+        Startup DeepSpec. 
+        OUT:      ready           boolean flag for readeness of DeepSpec
+        last update: 24-12-2023
+        author: Ido Irani
+        '''
+        self.logger.info('\n-----------------------------------------------------\n')
+        self.logger.info('starting up DeepSpec')
+        if not self.connected:
+            self.logger.info('connecting cameras')
+            out = self.connect()
+            if not out:
+                return False
+        if not self.initialized:
+            self.logger.info('initializing...')
+            init = self.initialize()
+            if not init:
+                return False
+        if not self.cooled:
+            self.logger.info('cooling...')
+            cool = self.cool()
+            if not cool:
+                return False
+        pos = self.slit_pos(0)
+        if not pos:
+            return False
+        self.logger.info('setting exposure parameters')
+        self.binning = binning
+        self.t_exp = t_exp_ms
+        self.readoutSpeed = readoutSpeed
+        for i in range(self.n_cams):
+            self.cameras[i].set_binning(binning)
+            self.cameras[i].set_exposure_time(t_exp_s)
+            self.cameras[i].set_readout_speed(readoutSpeed)
+        return True
+        
+     
+    def expose(self, t_exp = -1, verbose = True):
+        '''
+        # Initiates a measurement with the current settings and returns the image data and header. 
+        # IN:       t_exp            exposure time [ms]. Default is the current setting self.t_exp
+        # IN:       verbose          flag to print output
+        # OUT:      hdul             FITS file with 4 extentions with image data and headers
+        last update: 24-12-2023)
+        author: Ido Irani
+        '''
+        hdul = []
+        for i in range(self.n_cams):
+            hdu = self.cameras[i].expose(t_exp, verbose)
+            hdul = hdul + hdu
+        return hdul
