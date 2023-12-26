@@ -11,7 +11,7 @@ CameraIP_1 = '192.168.1.231'
 CameraIP_2 = '192.168.1.232'
 CameraIP_3 = '192.168.1.233'
 CameraIP_4 = '192.168.1.234'
-
+IPS = [CameraIP_1, CameraIP_2, CameraIP_3, CameraIP_4]
 #IP/band mapping
 dic_band =  {'192.168.1.231' : 'U'
 			,'192.168.1.232' : 'G'

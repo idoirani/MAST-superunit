@@ -46,7 +46,6 @@ class CamAPI(object):
         self.cooled = False                 # flag for cooling status
         self.initialized = False            # flag for initialization status
         self.bitpix = 0                     # number of bits per pixel
-        self.
         self.logger = self.setup_logger(f'camera_{id}')
         self.connectionType = ge.connectionType_Ethernet # or ge.ConnectionType_USB instead`
     def setup_logger(self, name, log_file=-1, level=logging.INFO):
@@ -331,6 +330,17 @@ class CamAPI(object):
             self.logger.error('   Error while setting %s',speed[readoutSpeed])
         self.readout_speed = readoutSpeed
         return res
+    def Detector_Temperature(self):
+        '''
+        # gives the current detector and backside temperature
+        # 
+        # OUT:      Temperature         a tuple containing detector and backside temepratures 
+        last update: 24-12-2023
+        author: Ido Irani
+        '''
+        temperature = ge.TemperatureControl_GetTemperature(0, addr = self.id)
+        temperature_back = ge.TemperatureControl_GetTemperature(1, addr = self.id)
+        return temperature, temperature_back
         
     def log_T_func(self,path_fold, out_name = -1):
         '''
@@ -346,6 +356,11 @@ class CamAPI(object):
         columns = ['current_time', 'detector_temperature', 'backside_temperature']
         data = pd.DataFrame(columns=columns)
         n = 1
+        if path_fold[-1]== "\\":
+            out_path = path_fold + out_name
+        else:
+            out_path = path_fold + "\\"+ out_name    
+        
         while self.monitor_temperature:
             temperature = ge.TemperatureControl_GetTemperature(0, addr = self.id)
             temperature_back = ge.TemperatureControl_GetTemperature(1, addr = self.id)
@@ -363,7 +378,7 @@ class CamAPI(object):
             time.sleep(10)  # Wait for 10 seconds
             if np.mod(n,10)==0:
                 try:
-                    data.to_csv(path_fold + out_name, index=False)
+                    data.to_csv(out_path, index=False)
                 except:
                     pass
                 
@@ -426,12 +441,13 @@ class CamAPI(object):
         self.logger.info('      lowest possible setpoint = %s °C', Cooling_limits[0])
         self.logger.info('      highest possible setpoint = %s °C', Cooling_limits[1])
         self.logger.info('   Actual Temperatures are:')
-        self.logger.info('      CCD (TEC frontside):', ge.TemperatureControl_GetTemperature(0,addr = self.id), '°C')
-        self.logger.info('      TEC backside:', ge.TemperatureControl_GetTemperature(1,addr = self.id), '°C')  
+        T,T_back = self.Detector_Temperature()
+        self.logger.info('      CCD (TEC frontside): %s °C', T)
+        self.logger.info('      TEC backside: %s °C', T_back)  
         TconSet = ge.TemperatureControl_SetTemperature(self.T_goal, addr = self.id)
         if TconSet:
             self.monitor_temperature = True
-            temp_thread = threading.Thread(target=self.log_T_func, args = [self.id,path_fold, out_name])    
+            temp_thread = threading.Thread(target=self.log_T_func, args = [path_fold, out_name])    
             temp_thread.start()
         else: 
             self.logger.error('failed setting temperature')
@@ -465,8 +481,8 @@ class CamAPI(object):
                 self.logger.info('   waiting, while DLL is busy')
             t_meas = 0
             t_crit = t_exp / 1000 + 10  # seconds for measurement timeout
-            dt = 0.01
-            while self.busy():
+            dt = 0.1
+            while self.DLLisbusy():
                 time.sleep(dt)
                 t_meas = t_meas + dt
                 if (t_meas >= t_crit):  # if measurement takes took long
@@ -544,7 +560,7 @@ class DeepSpecAPI(object):
         for i in range(self.n_cams):
             self.cameras.append(CamAPI(i, IP[i]))
         self.bands = [self.cameras[i].band for i in range(self.n_cams)]
-        
+        self.T_goal = -80
     
     def setup_logger(self, name, log_file=-1, level=logging.INFO):
         '''
@@ -639,7 +655,11 @@ class DeepSpecAPI(object):
             self.logger.error('   DeepSpec connection failed')
             self.connected =  False
         return self.connected
-    
+    def get_temperature(self):
+        T_out = []
+        for i in range(self.n_cams):
+            T_out.append(self.cameras[i].Detector_Temperature())
+        return T_out
     def cool(self, T_goal = -80, n_max = 0, verbose = True, path_fold = -1):
         '''
         Cool down to goal temperature. Will monitor until T_goal is reached and report backside and detector temperature every 10 seconds.
@@ -651,20 +671,21 @@ class DeepSpecAPI(object):
         last update: 24-12-2023
         author: Ido Irani
         '''
+        self.T_goal = T_goal
         if path_fold == -1:
             #add to path date folder
             path_fold = path_T_logging + '\\' + time.strftime("%Y%m%d", time.localtime())
+            
+        if not os.path.exists(path_fold):
+            os.makedirs(path_fold)
         self.logger.info('\n-----------------------------------------------------\n')
         self.logger.info('cooling DeepSpec cameras')
         cooled = np.array([False]*self.n_cams)
         for i in range(self.n_cams):
-            cooled[i] = self.cameras[i].cool_and_log_temperature(self, T_goal,path_fold)
-        if cooled.all():
-            self.logger.info('  All detectors cooling')
-        else:
-            self.logger.error('   problem encountered during cooling setup')
-        self.cooled = cooled.all()
-        return cooled.all()
+            out_name = 'temperature_log_' + self.cameras[i].band + '.txt'
+            self.cameras[i].cool_down(-80,0,False)
+            cooled[i] = self.cameras[i].cool_and_log_temperature(T_goal,path_fold)
+        return cooled
         
     def slit_pos(self, pos):
         '''
@@ -685,16 +706,10 @@ class DeepSpecAPI(object):
             out = self.connect()
             if not out:
                 return False
-        if not self.initialized:
-            self.logger.info('initializing...')
-            init = self.initialize()
-            if not init:
-                return False
         if not self.cooled:
             self.logger.info('cooling...')
             cool = self.cool()
-            if not cool:
-                return False
+            self.cooled = True
         pos = self.slit_pos(0)
         if not pos:
             return False
@@ -704,7 +719,7 @@ class DeepSpecAPI(object):
         self.readoutSpeed = readoutSpeed
         for i in range(self.n_cams):
             self.cameras[i].set_binning(binning)
-            self.cameras[i].set_exposure_time(t_exp_s)
+            self.cameras[i].set_exposure_time(t_exp_ms)
             self.cameras[i].set_readout_speed(readoutSpeed)
         return True
         
@@ -718,8 +733,19 @@ class DeepSpecAPI(object):
         last update: 24-12-2023)
         author: Ido Irani
         '''
-        hdul = []
+        hdul = [None] * self.n_cams
+        def thread_function(camera, hdul, index):
+            hdu = camera.expose(t_exp, verbose)
+            hdul[index] = hdu[0]
+        # Create a list to hold threads
+        threads = []
+        # Start a new thread for each camera
         for i in range(self.n_cams):
-            hdu = self.cameras[i].expose(t_exp, verbose)
-            hdul = hdul + hdu
+            thread = threading.Thread(target=thread_function, args=(self.cameras[i], hdul, i))
+            threads.append(thread)
+            thread.start()
+        # Wait for all threads to complete
+        for thread in threads:
+            thread.join()
         return hdul
+    
