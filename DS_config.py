@@ -60,4 +60,9 @@ FITS_HEADER_comment =   {'TELESCOPE': 'TELESCOPE NAME'
 						,'PIXEL_SIZE': 'PIXEL SIZE IN MICRONS'
                         ,'BITPIX':'# of bits storing pix values'}
 	
-
+if __name__ == '__main__':
+    path_sdk = r'C:\Users\idoi\Dropbox\MAST\Deep_Spec\detectors\DeepSpec_control'
+    import sys 
+    sys.path.append(path_sdk)
+    from DeepSpec import *
+    

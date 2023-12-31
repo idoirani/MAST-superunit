@@ -8,8 +8,6 @@ Created on Wed Dec 24 2023
 @author: Ido Irani
 """
 
-from sre_constants import SUCCESS
-from tkinter import SE
 import numpy as np
 from DS_config import *
 import sys
@@ -22,7 +20,6 @@ import astropy.io.fits as fits
 import astropy.time as atime
 import os
 import logging 
-
 
 
 class CamAPI(object):
@@ -48,6 +45,7 @@ class CamAPI(object):
         self.bitpix = 0                     # number of bits per pixel
         self.logger = self.setup_logger(f'camera_{id}')
         self.connectionType = ge.connectionType_Ethernet # or ge.ConnectionType_USB instead`
+        self.amp_id = int(2)
     def setup_logger(self, name, log_file=-1, level=logging.INFO):
         '''
         Sets up a logger for each instance of CamAPI.
@@ -110,7 +108,7 @@ class CamAPI(object):
             NumberOfOutputModes = ge.GetNumberOfSensorOutputModes(addr = self.id)
             for i in range(NumberOfOutputModes):
                 self.logger.info('      mode ' + str(i) + ': %s', ge.GetSensorOutputModeStrings(i,addr = self.id))
-                ge.SetupSensorOutputMode(NumberOfOutputModes-1,addr = self.id)
+                #ge.SetupSensorOutputMode(NumberOfOutputModes-1,addr = self.id)
         pass
     
 
@@ -203,7 +201,7 @@ class CamAPI(object):
             self.logger.info('      CCD (TEC frontside): = %s °C', ge.TemperatureControl_GetTemperature(0,addr = self.id))
             self.logger.info('      TEC backside: = %s °C', ge.TemperatureControl_GetTemperature(1,addr = self.id))
             self.logger.info('   Setting %s °C',self.T_goal)
-        if ge.TemperatureControl_SetTemperature(self.T_goal) == True:
+        if ge.TemperatureControl_SetTemperature(self.T_goal,addr = self.id) == True:
             x = 0
             n = 0
             if verbose:
@@ -265,7 +263,19 @@ class CamAPI(object):
             self.logger.error('Sensor cooling switch off failed')
         return off
     
-
+    def set_readout_amps(self,amp_id = -1):
+        '''
+        setup readout amplifiers. rotate between left and right amplifiers for readout or both. 
+        # IN:       sensorOutputMode (int)        0 = 1 Amp (OSR); 1 = 1 Amp (OSL); 2 = 2 Amp (OSR & OSL)
+        # In:       addr                    index of connected devices; begins at addr = 0 for first device
+        # Result:   Bool                    success true/false
+        '''
+        if amp_id == -1:
+            amp_id = self.amp_id
+        self.amp_id = int(amp_id)
+        ge.SetupSensorOutputMode(self.amp_id, addr = self.id)
+        pass
+        
     def set_binning(self, binning):
         '''
         Set binning mode. 
@@ -288,42 +298,50 @@ class CamAPI(object):
     def set_exposure_time(self,t_exp, **kwargs):
         '''
         # sets the exposure time for measurements
-        # IN:       openTime            time to wait before exposure [ms]
-        # IN:       closeTime           time to wait after exposure [ms]
+        # IN:       t_exp               exposure time [s]
         # OUT:      statusMSG           updates index and string of status message
         # Result:   Bool                success true/false
         last update: 24-12-2023
         author: Ido Irani
         '''
-        exp = ge.SetExposure(t_exp,addr = self.id,**kwargs) == True
+        t_exp_ms = int(t_exp*1000)
+        exp = ge.SetExposure(t_exp_ms,addr = self.id,**kwargs) == True
         self.logger.info('\n-----------------------------------------------------\n')
         self.logger.info('setting measurement parameters:')
         if (exp):
-            self.logger.info('   exposure time set to %s ms', t_exp)
+            self.logger.info('   exposure time set to %s s', t_exp)
         self.logger.info('\n-----------------------------------------------------\n')        
         self.t_exp = t_exp
         return exp
     
 
-    def set_readout_speed(self, readoutSpeed = 6):
+    def set_readout_speed(self, readoutSpeed = 5):
         '''
         # sets the readout frequency (pixels/sec) for measurements
-        # IN:       readoutSpeed        sets pixel clock to [0..6]
+        # IN:       readoutSpeed        
         #                                   0 -> 1 MHz
         #                                   3 -> 3 MHz
-        #                                   5 -> 500 kHz
-        #                                   6 -> 50 kHz
+        #                                   4 -> 500 kHz
+        #                                   5 -> 250 kHz
+        #                                   6 -> 100 kHz
+        #                                   7 -> 50 kHz
         # IN:       addr                index of connected devices; begins at addr = 0 for first device
         # OUT:      statusMSG           updates index and string of status message
         # Result:   Bool                success true/false
         last update: 24-12-2023
         author: Ido Irani
         '''
-        speed = {0: '1 MHz', 3: '3 MHz', 5:'500 kHz',6:'50 kHz'}
+        speed = {0: '1 MHz', 3: '3 MHz', 4:'500 kHz', 5:'250 kHz',6:'100 kHz',7:'50 kHz'}
+        rdspeed =  {0: ge.readoutSpeed_1_MHz,
+                    3: ge.readoutSpeed_3_MHz,
+                    4:ge.readoutSpeed_500_kHz,
+                    5: ge.readoutSpeed_250_kHz,
+                    6:ge.readoutSpeed_100_kHz, 
+                    7:ge.readoutSpeed_50_kHz}
         if readoutSpeed not in speed.keys():
             raise ValueError('not in the list of keys for permitted readout modes. These are: {0: 1 MHz, 3: 3 MHz, 5:500 kHz,6:50 kHz}')
         self.logger.info('\n  Setting pixel readout frequency to %s',speed[readoutSpeed])
-        res = ge.SetReadOutSpeed(ge.readoutSpeed_50_kHz,addr = self.id)
+        res = ge.SetReadOutSpeed(rdspeed[readoutSpeed],addr = self.id)
         if  res:
             self.logger.info('   Success')
         else:
@@ -456,7 +474,7 @@ class CamAPI(object):
     def expose(self,t_exp = -1, verbose=True):
         '''
         # Initiates a measurement with the current settings and returns the image data and header. 
-        # IN:       t_exp            exposure time [ms]. Default is the current setting self.t_exp
+        # IN:       t_exp            exposure time [s]. Default is the current setting self.t_exp
         # IN:       verbose          flag to print output
         # OUT:      hdul             FITS file with image data and header
         last update: 24-12-2023
@@ -474,19 +492,21 @@ class CamAPI(object):
         if not self.cooled: 
             self.logger.warning('Warning: detector is not cooled. Signal to noise may be severly affected')
         start_time = time.localtime()
+        ge.SetLEDStatus(False, addr = self.id)
         measure = ge.StartMeasurement_DynBitDepth(addr = self.id)
         if measure:
             if verbose:
                 self.logger.info('   measurement started')
                 self.logger.info('   waiting, while DLL is busy')
             t_meas = 0
-            t_crit = t_exp / 1000 + 10  # seconds for measurement timeout
+            t_crit = t_exp + 10  # seconds for measurement timeout
             dt = 0.1
             while self.DLLisbusy():
                 time.sleep(dt)
                 t_meas = t_meas + dt
                 if (t_meas >= t_crit):  # if measurement takes took long
                     if ge.StopMeasurement(addr = self.id) == True:
+                        import ipdb; ipdb.set_trace()
                         self.logger.error('measurement stopped, measurement took too long')
             end_time = time.localtime()
             utc_start_time = time.gmtime(time.mktime(start_time))
@@ -502,6 +522,7 @@ class CamAPI(object):
             utc_start_time = time.strftime("%Y-%m-%dT%H:%M:%S", utc_start_time)
             utc_end_time = time.strftime("%Y-%m-%dT%H:%M:%S", utc_end_time)
             utc_mid_time = time.strftime("%Y-%m-%dT%H:%M:%S", utc_mid_time)
+            ge.SetLEDStatus(True, addr = self.id)
 
             if verbose:
                 self.logger.info('   ...finished\n')
@@ -513,12 +534,12 @@ class CamAPI(object):
             hdr['CAMERA_IP'] = self.IP
             hdr['TYPE'] = 'RAW'
             hdr['LOCAL_T_START'] = start_time
-            hdr['LOCAL_T_MID'] = mid_time
-            hdr['LOCAL_T_END'] = end_time
-            hdr['T_START'] = utc_start_time
-            hdr['T_MID']   = utc_mid_time
-            hdr['T_END']   = utc_end_time
-            hdr['T_EXP'] = t_exp
+            hdr['LOCAL_T_MID']   = mid_time
+            hdr['LOCAL_T_END']   = end_time
+            hdr['T_START']       = utc_start_time
+            hdr['T_MID']         = utc_mid_time
+            hdr['T_END']         = utc_end_time
+            hdr['T_EXP']         = t_exp
             hdr['TEMP_GOAL'] = self.T_goal
             hdr['TEMP_SAFE_FLAG'] = self.safe_Temp
             hdr['DATE-OBS'] = mid_time
@@ -553,6 +574,7 @@ class DeepSpecAPI(object):
         self.n_cams = len(IP)
         self.connected = False
         self.initialized = False
+        self.monitor_T = False
         self.logger = self.setup_logger('DeepSpec')
         self.connectionType = ge.connectionType_Ethernet # or ge.ConnectionType_USB instead`
         self.cameras = []
@@ -660,6 +682,18 @@ class DeepSpecAPI(object):
         for i in range(self.n_cams):
             T_out.append(self.cameras[i].Detector_Temperature())
         return T_out
+    def set_T_goal(self, T_goal):
+        res_all = []
+        for cam in self.cameras:
+            res = cam.cool_down(T_goal , 0, False)
+            if res: 
+                cam.T_goal = T_goal
+            res_all.append(res)
+        if np.array(res_all).all():
+            self.T_goal = T_goal
+            return True
+        else: 
+            return False
     def cool(self, T_goal = -80, n_max = 0, verbose = True, path_fold = -1):
         '''
         Cool down to goal temperature. Will monitor until T_goal is reached and report backside and detector temperature every 10 seconds.
@@ -683,8 +717,10 @@ class DeepSpecAPI(object):
         cooled = np.array([False]*self.n_cams)
         for i in range(self.n_cams):
             out_name = 'temperature_log_' + self.cameras[i].band + '.txt'
-            self.cameras[i].cool_down(-80,0,False)
+            self.cameras[i].cool_down(self.T_goal,0,False)
             cooled[i] = self.cameras[i].cool_and_log_temperature(T_goal,path_fold)
+        if cooled.all():
+            self.monitor_T = True
         return cooled
         
     def slit_pos(self, pos):
@@ -692,7 +728,7 @@ class DeepSpecAPI(object):
         PLACEHOLDER for slit control
         '''
         return True
-    def start_up(self, t_exp_ms = 1, binning = [1,1], readoutSpeed = 6):
+    def start_up(self, t_exp_s = 1e-3, binning = [1,1], readoutSpeed = 5):
         '''
         Startup DeepSpec. 
         OUT:      ready           boolean flag for readeness of DeepSpec
@@ -703,31 +739,33 @@ class DeepSpecAPI(object):
         self.logger.info('starting up DeepSpec')
         if not self.connected:
             self.logger.info('connecting cameras')
+            _   = self.disconnect()
             out = self.connect()
             if not out:
                 return False
         if not self.cooled:
             self.logger.info('cooling...')
-            cool = self.cool()
+            _ = self.cool()
             self.cooled = True
         pos = self.slit_pos(0)
         if not pos:
             return False
         self.logger.info('setting exposure parameters')
         self.binning = binning
-        self.t_exp = t_exp_ms
+        self.t_exp = t_exp_s
         self.readoutSpeed = readoutSpeed
         for i in range(self.n_cams):
+            self.cameras[i].set_readout_amps()
             self.cameras[i].set_binning(binning)
-            self.cameras[i].set_exposure_time(t_exp_ms)
+            self.cameras[i].set_exposure_time(t_exp_s)
             self.cameras[i].set_readout_speed(readoutSpeed)
         return True
-        
+
      
     def expose(self, t_exp = -1, verbose = True):
         '''
         # Initiates a measurement with the current settings and returns the image data and header. 
-        # IN:       t_exp            exposure time [ms]. Default is the current setting self.t_exp
+        # IN:       t_exp            exposure time [s]. Default is the current setting self.t_exp
         # IN:       verbose          flag to print output
         # OUT:      hdul             FITS file with 4 extentions with image data and headers
         last update: 24-12-2023)
@@ -747,5 +785,8 @@ class DeepSpecAPI(object):
         # Wait for all threads to complete
         for thread in threads:
             thread.join()
-        return hdul
+        hdull = fits.HDUList(hdus=[])
+        for hdu in hdul: 
+            hdull.append(hdu)
+        return hdull
     

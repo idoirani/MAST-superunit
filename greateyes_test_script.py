@@ -29,6 +29,7 @@ CameraIP_4 = '192.168.1.234'
 
 CameraIP  = [CameraIP_1,CameraIP_2]
 CameraIP  = [CameraIP_3,CameraIP_4]
+CameraIP  = [CameraIP_1]
 
 
 showImages = True  # displays all new images using matplotlib
@@ -124,7 +125,7 @@ def camera_connect_single():
 				Cooling_limits = ge.TemperatureControl_Init()
 				ge.SetBitDepth(4)
 				print('Switching off LED: ' + str(ge.SetLEDStatus(False)))
-				ge.OpenShutter(1)
+				ge.OpenShutter(1)	
 				time.sleep(1)
 				ge.OpenShutter(0)
 			else:
@@ -443,27 +444,27 @@ for cam in range(N_cam):
 for cam in range(N_cam):
 	disconnect(addr = cam)
 
-#
-#
-#N = 10
-#image_bias = take_image(t_exp = 1, addr = add_test)
-#image_bias = np.zeros((image_bias.shape[0],image_bias.shape[1],N))
-#for i in range(N):
-#	img = take_image(t_exp = 1, addr = add_test)
-#	image_bias[:,:,i] = img
-#
-#image_bias_median = np.zeros_like(img)
-#image_bias_std = np.zeros_like(img)
-#
-#for i in range(image_bias.shape[0]):
-#	for j in range(image_bias.shape[1]):
-#		image_bias_median[i,j] = np.median(image_bias[i,j,:])
-#		p75 = np.percentile(image_bias[i,j,:] - image_bias_median[i,j], 75)
-#		p25 = np.percentile(image_bias[i,j,:] - image_bias_median[i,j], 25)
-#
-#		image_bias_std[i,j] = p75 - p25
-#
-#display_image(image_bias_median)
-#display_image(image_bias_std)
-#
-#plt.imshow(image_bias[:,:,1] - image_bias_median)
+
+
+N = 1
+image_bias = take_image(t_exp = 1, addr = add_test)
+image_bias = np.zeros((image_bias.shape[0],image_bias.shape[1],N))
+for i in range(N):
+	img = take_image(t_exp = 1, addr = add_test)
+	image_bias[:,:,i] = img
+
+image_bias_median = np.zeros_like(img)
+image_bias_std = np.zeros_like(img)
+
+for i in range(image_bias.shape[0]):
+	for j in range(image_bias.shape[1]):
+		image_bias_median[i,j] = np.median(image_bias[i,j,:])
+		p75 = np.percentile(image_bias[i,j,:] - image_bias_median[i,j], 75)
+		p25 = np.percentile(image_bias[i,j,:] - image_bias_median[i,j], 25)
+
+		image_bias_std[i,j] = p75 - p25
+
+display_image(image_bias_median)
+display_image(image_bias_std)
+
+plt.imshow(image_bias[:,:,1] - image_bias_median)
