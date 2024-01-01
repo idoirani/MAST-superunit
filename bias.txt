@@ -1,0 +1,3 @@
+cool, -70
+cool_to_goal, 30
+fullbias, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\01012024, \fullbias_frame.fits, 20, 0.001

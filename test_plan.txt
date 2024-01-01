@@ -1,0 +1,6 @@
+cool, -70
+idle, 2
+bias, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC, bias_test.fits, 1, 0.001
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC, exposure_test.fits, 100, True
+idle, 10
+

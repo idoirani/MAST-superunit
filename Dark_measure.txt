@@ -1,0 +1,141 @@
+cool, -70
+cool_to_goal, 30
+bias, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \bias_frame.fits, 10, 0.001
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_70_1.fits, 10, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_70_2.fits, 20, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_70_3.fits, 60, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_70_4.fits, 300, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_70_5.fits, 900, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_70_5.fits, 1500, True
+cool, -65
+cool_to_goal, 30
+bias, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \bias_frame.fits, 10, 0.001
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_65_1.fits, 10, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_65_2.fits, 20, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_65_3.fits, 60, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_65_4.fits, 300, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_65_5.fits, 900, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_65_5.fits, 1500, True
+cool, -60
+cool_to_goal, 30
+bias, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \bias_frame.fits, 10, 0.001
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_60_1.fits, 10, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_60_2.fits, 20, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_60_3.fits, 60, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_60_4.fits, 300, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_60_5.fits, 900, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_60_5.fits, 1500, True
+cool, -50
+cool_to_goal, 30
+bias, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \bias_frame.fits, 10, 0.001
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_50_1.fits, 10, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_50_2.fits, 20, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_50_3.fits, 60, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_50_4.fits, 300, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_50_5.fits, 900, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_50_5.fits, 1500, True
+cool, -75
+cool_to_goal, 30
+bias, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \bias_frame.fits, 10, 0.001
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_75_1.fits, 10, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_75_2.fits, 20, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_75_3.fits, 60, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_75_4.fits, 300, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_75_5.fits, 900, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_75_5.fits, 1500, True
+cool, -70
+cool_to_goal, 30
+bias, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \bias_frame.fits, 10, 0.001
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_70_1.fits, 10, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_70_2.fits, 20, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_70_3.fits, 60, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_70_4.fits, 300, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_70_5.fits, 900, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_70_5.fits, 1500, True
+cool, -65
+cool_to_goal, 30
+bias, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \bias_frame.fits, 10, 0.001
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_65_1.fits, 10, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_65_2.fits, 20, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_65_3.fits, 60, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_65_4.fits, 300, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_65_5.fits, 900, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_65_5.fits, 1500, True
+cool, -60
+cool_to_goal, 30
+bias, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \bias_frame.fits, 10, 0.001
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_60_1.fits, 10, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_60_2.fits, 20, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_60_3.fits, 60, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_60_4.fits, 300, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_60_5.fits, 900, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_60_5.fits, 1500, True
+cool, -50
+cool_to_goal, 30
+bias, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \bias_frame.fits, 10, 0.001
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_50_1.fits, 10, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_50_2.fits, 20, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_50_3.fits, 60, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_50_4.fits, 300, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_50_5.fits, 900, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_50_5.fits, 1500, True
+cool, -75
+cool_to_goal, 30
+bias, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \bias_frame.fits, 10, 0.001
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_75_1.fits, 10, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_75_2.fits, 20, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_75_3.fits, 60, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_75_4.fits, 300, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_75_5.fits, 900, True
+idle, 5
+expose, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC\3122023, \exposure_75_5.fits, 1500, True
+cool, 0
