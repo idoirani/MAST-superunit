@@ -493,6 +493,7 @@ class CamAPI(object):
             self.logger.warning('Warning: detector is not cooled. Signal to noise may be severly affected')
         start_time = time.localtime()
         ge.SetLEDStatus(False, addr = self.id)
+        time.sleep(0.5)
         measure = ge.StartMeasurement_DynBitDepth(addr = self.id)
         if measure:
             if verbose:

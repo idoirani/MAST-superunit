@@ -56,15 +56,17 @@ class ExposeAction(object):
         else:
             self.out_fold = out_fold + os.sep
         if outfile.startswith(os.sep):
-            self.outfile = out_fold + outfile.lstrip(os.sep)
+            self.outfile = self.out_fold + outfile.lstrip(os.sep)
         else:
-            self.outfile = out_fold + outfile
+            self.outfile = self.out_fold + outfile
     def execute(self, write = True):
         hdul = self.DS_obj.expose(self.t_exp, self.verbose)
         if self.type != '':
             for hdu in hdul:
                 hdu.header['TYPE'] = self.type
-                
+        
+        if not os.path.exists(self.out_fold):
+            os.mkdir(self.out_fold)
         # save hdul fits file to disk
         if write:
             try:
@@ -88,32 +90,80 @@ class BiasAction(object):
         else:
             self.out_fold = out_fold + os.sep
         if outfile.startswith(os.sep):
-            self.outfile = out_fold + outfile.lstrip(os.sep)
+            self.outfile = self.out_fold + outfile.lstrip(os.sep)
         else:
-            self.outfile = out_fold + outfile
+            self.outfile = self.out_fold + outfile
             
     def execute(self, write = True):
-        hdul = []
+        hdul = [[],[],[],[]]
         # expose n_exp bias frames
         for i in range(self.n_exp):
             hdull = self.DS_obj.expose(self.t_exp, self.verbose)
-            for i in range(len(hdull)):
-                hdull[i].header['TYPE'] = 'BIAS'
-            hdul = hdul + hdull
+            for j in range(len(hdull)):
+                hdull[j].header['TYPE'] = 'BIAS'
+                hdul[j] = hdul[j] + [hdull[j]]
         # create a master frame from the median of all frames
         master_hdul = fits.HDUList(hdus=[])
         for i in range(4):
-            all_exps = np.array([hdul[j].data for j in range(len(hdul))])
+            all_exps = np.array([hdul[i][j].data for j in range(len(hdul[i]))])
             med_exp = np.median(all_exps, axis=0)
-            hdr = hdul[len(hdul)//2].header
+            hdr = hdul[i][len(hdul)//2].header
             out_hdul = fits.HDUList([fits.PrimaryHDU(med_exp, header=hdr)])
-            master_hdul.append(out_hdul[0])
-
+            master_hdul.append(out_hdul[0])  
+        if not os.path.exists(self.out_fold):
+            os.mkdir(self.out_fold)
         # save hdul fits file to disk
         master_hdul.writeto(self.outfile, overwrite=True)
         return master_hdul
             
+class FullBiasAction(object):
+    def __init__(self, DS_obj, out_fold, outfile, n_exp = 10, t_exp = 1, verbose = True):
+        self.DS_obj = DS_obj
+        self.t_exp = t_exp
+        self.verbose = verbose
+        self.n_exp = n_exp
+        if out_fold.endswith(os.sep):
+            self.out_fold = out_fold
+        else:
+            self.out_fold = out_fold + os.sep
+        if outfile.startswith(os.sep):
+            self.outfile = self.out_fold + outfile.lstrip(os.sep)
+        else:
+            self.outfile = self.out_fold + outfile
+            
+    def execute(self, write = True):
+        hdul = [[],[],[],[]]
+        # expose n_exp bias frames
+        for i in range(self.n_exp):
+            hdull = self.DS_obj.expose(self.t_exp, self.verbose)
+            for j in range(len(hdull)):
+                hdull[j].header['TYPE'] = 'BIAS'
+                hdul[j] = hdul[j] + [hdull[j]]
+        # create a master frame from the median of all frames
+        hdulU = hdul[0]
+        hdulG = hdul[1]
+        hdulR = hdul[2]
+        hdulI = hdul[3]
+        
+        all_U = fits.HDUList(hdus=[])
+        all_G = fits.HDUList(hdus=[])
+        all_R = fits.HDUList(hdus=[])
+        all_I = fits.HDUList(hdus=[])
 
+        for i in range(self.n_exp):
+            all_U.append(hdulU[i])  
+            all_G.append(hdulG[i])
+            all_R.append(hdulR[i])
+            all_I.append(hdulI[i])
+            
+        if not os.path.exists(self.out_fold):
+            os.mkdir(self.out_fold)
+        # save hdul fits file to disk
+        all_U.writeto(self.outfile.split('.fits')[0] + '_U.fits', overwrite=True)
+        all_G.writeto(self.outfile.split('.fits')[0] + '_G.fits', overwrite=True)
+        all_R.writeto(self.outfile.split('.fits')[0] + '_R.fits', overwrite=True)
+        all_I.writeto(self.outfile.split('.fits')[0] + '_I.fits', overwrite=True)
+        return [all_U,all_G,all_R,all_I]
 
 class IdleAction(object):
     def __init__(self, duration):
@@ -180,7 +230,7 @@ class DisconnectAction(object):
 class Plan(object):
     def __init__(self,DS_obj, filename,path_fold,write = False, screen_off = True):
         self.actions = []
-        self.action_type_dic = {'idle': 'misc.', 'start_up':'misc.', 'cool':'misc.', 'cool_to_goal':'misc.', 'expose':'expose', 'bias':'expose'}
+        self.action_type_dic = {'idle': 'misc.', 'start_up':'misc.', 'cool':'misc.', 'cool_to_goal':'misc.', 'expose':'expose', 'bias':'expose', 'fullbias':'expose'}
         self.action_type = []
         self.parse_plan(filename,path_fold)
         self.action_number = 0
@@ -202,6 +252,8 @@ class Plan(object):
                     self.actions.append(IdleAction(float(parts[1])))
                 elif action == 'bias':
                     self.actions.append(BiasAction(DS_obj, parts[1], parts[2], int(parts[3]), float(parts[4])))
+                elif action == 'fullbias':
+                    self.actions.append(FullBiasAction(DS_obj, parts[1], parts[2], int(parts[3]), float(parts[4])))
                 elif action == 'expose':
                     self.actions.append(ExposeAction(DS_obj, parts[1], parts[2], float(parts[3]), parts[4]))
                 elif action not in ['cool','cool_to_goal', 'idle', 'bias','expose' ]:
@@ -220,11 +272,14 @@ class Plan(object):
             elif atype == 'idle':
                 dur = action.duration
                 print(f'pausing for {dur} s')
-                
             elif atype == 'bias':
                 n_exp = action.n_exp
                 t_exp = action.t_exp
-                print(f'bias with f{n_exp} exposures of {t_exp} s')
+                print(f'bias with {n_exp} exposures of {t_exp} s')
+            elif atype == 'fullbias':
+                n_exp = action.n_exp
+                t_exp = action.t_exp
+                print(f'Full bias with {n_exp} exposures of {t_exp} s')
             elif atype == 'expose':
                 t_exp = action.t_exp
                 print(f'exposure {t_exp} s')
@@ -232,7 +287,7 @@ class Plan(object):
             if self.action_type_dic[atype] == 'misc.':
                 action.execute()
             elif self.action_type_dic[atype] == 'expose':
-                turn_off_display()
+                #turn_off_display()
                 action.execute(write = self.write)
                 #turn_on_display()
         pass
