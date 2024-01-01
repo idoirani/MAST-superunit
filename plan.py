@@ -182,8 +182,13 @@ class CoolToGoalAction(object):
         while x==1:
             Temps = self.DS_obj.get_temperature()
             Temps_front = np.array([Temps[i][0] for i in range(len(Temps))])
-            diff_T= np.sum(np.abs(Temps_front - self.T_goal))
-            max_diff = np.max(np.abs(Temps_front - self.T_goal))
+            if self.T_goal<-70:
+                np.sum(np.abs(Temps_front[[0,1,3]] - self.T_goal))
+                max_diff = np.max(np.abs(Temps_front[[0,1,3]] - self.T_goal))
+            else: 
+                diff_T= np.sum(np.abs(Temps_front - self.T_goal))
+                max_diff = np.max(np.abs(Temps_front - self.T_goal))
+
             if (diff_T>5)|(max_diff>3): 
                 print('Detector Temmperature: U = {0} °C, G = {1} °C, R = {2} °C, I = {3} °C'.format(Temps[0][0],Temps[1][0],Temps[2][0],Temps[3][0]))
                 time.sleep(self.interval)
