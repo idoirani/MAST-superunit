@@ -1,0 +1,22 @@
+cool, -70
+idle, 1
+bias, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC, bias_1.fits, 1, 0.001
+idle, 0.5
+bias, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC, bias_2.fits, 1, 0.001
+idle, 0.5
+bias, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC, bias_3.fits, 1, 0.001
+idle, 0.5
+bias, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC, bias_4.fits, 1, 0.001
+idle, 0.5
+bias, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC, bias_5.fits, 1, 0.001
+idle, 0.5
+bias, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC, bias_6.fits, 1, 0.001
+idle, 0.5
+bias, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC, bias_7.fits, 1, 0.001
+idle, 0.5
+bias, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC, bias_8.fits, 1, 0.001
+idle, 0.5
+bias, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC, bias_9.fits, 1, 0.001
+idle, 0.5
+bias, C:\Users\idoi\Dropbox\DeepSpec\Detectors\testing\DC, bias_10.fits, 1, 0.001
+idle, 0.5

@@ -85,6 +85,7 @@ class BiasAction(object):
         self.t_exp = t_exp
         self.verbose = verbose
         self.n_exp = n_exp
+        self.bands = DS_obj.bands
         if out_fold.endswith(os.sep):
             self.out_fold = out_fold
         else:
@@ -95,7 +96,7 @@ class BiasAction(object):
             self.outfile = self.out_fold + outfile
             
     def execute(self, write = True):
-        hdul = [[],[],[],[]]
+        hdul = [[]]*len(self.bands)
         # expose n_exp bias frames
         for i in range(self.n_exp):
             hdull = self.DS_obj.expose(self.t_exp, self.verbose)
@@ -104,7 +105,7 @@ class BiasAction(object):
                 hdul[j] = hdul[j] + [hdull[j]]
         # create a master frame from the median of all frames
         master_hdul = fits.HDUList(hdus=[])
-        for i in range(4):
+        for i in range(len(hdul)):
             all_exps = np.array([hdul[i][j].data for j in range(len(hdul[i]))])
             med_exp = np.median(all_exps, axis=0)
             hdr = hdul[i][len(hdul)//2].header
@@ -122,6 +123,7 @@ class FullBiasAction(object):
         self.t_exp = t_exp
         self.verbose = verbose
         self.n_exp = n_exp
+        self.bands = DS_obj.bands
         if out_fold.endswith(os.sep):
             self.out_fold = out_fold
         else:
@@ -132,38 +134,32 @@ class FullBiasAction(object):
             self.outfile = self.out_fold + outfile
             
     def execute(self, write = True):
-        hdul = [[],[],[],[]]
+        hdul = [[]]*len(self.bands)
         # expose n_exp bias frames
         for i in range(self.n_exp):
             hdull = self.DS_obj.expose(self.t_exp, self.verbose)
+            if i==0:
+                time.sleep(0.5)
+                for m in range(DS_obj.n_cams):
+                    print('DLL is busy? ({0} band): '.format(DS_obj.bands[m])+str(DS_obj.cameras[m].DLLisbusy()))
             for j in range(len(hdull)):
                 hdull[j].header['TYPE'] = 'BIAS'
                 hdul[j] = hdul[j] + [hdull[j]]
-        # create a master frame from the median of all frames
-        hdulU = hdul[0]
-        hdulG = hdul[1]
-        hdulR = hdul[2]
-        hdulI = hdul[3]
-        
-        all_U = fits.HDUList(hdus=[])
-        all_G = fits.HDUList(hdus=[])
-        all_R = fits.HDUList(hdus=[])
-        all_I = fits.HDUList(hdus=[])
-
-        for i in range(self.n_exp):
-            all_U.append(hdulU[i])  
-            all_G.append(hdulG[i])
-            all_R.append(hdulR[i])
-            all_I.append(hdulI[i])
-            
+                # create a master frame from the median of all frames
+        HDU_dic = {}
+        for i,cam in enumerate(self.bands):
+            HDU_dic[cam] = hdul[i]
         if not os.path.exists(self.out_fold):
             os.mkdir(self.out_fold)
         # save hdul fits file to disk
-        all_U.writeto(self.outfile.split('.fits')[0] + '_U.fits', overwrite=True)
-        all_G.writeto(self.outfile.split('.fits')[0] + '_G.fits', overwrite=True)
-        all_R.writeto(self.outfile.split('.fits')[0] + '_R.fits', overwrite=True)
-        all_I.writeto(self.outfile.split('.fits')[0] + '_I.fits', overwrite=True)
-        return [all_U,all_G,all_R,all_I]
+        for i,cam in enumerate(self.DS_obj.bands):
+            try:
+                for j in range(self.n_exp):
+                    hdu_list = fits.HDUList(hdus=HDU_dic[cam][j])
+                    hdu_list.writeto(self.outfile.split('.fits')[0] + '_'+cam+'_exp'+f'{j}'+'.fits', overwrite=True)
+            except:
+                import ipdb; ipdb.set_trace()
+        return HDU_dic
 
 class IdleAction(object):
     def __init__(self, duration):
@@ -183,18 +179,23 @@ class CoolToGoalAction(object):
             Temps = self.DS_obj.get_temperature()
             Temps_front = np.array([Temps[i][0] for i in range(len(Temps))])
             if self.T_goal<-70:
-                np.sum(np.abs(Temps_front[[0,1,3]] - self.T_goal))
-                max_diff = np.max(np.abs(Temps_front[[0,1,3]] - self.T_goal))
+                diff_T= np.sum(np.abs(Temps_front - self.T_goal))
+                max_diff = np.max(np.abs(Temps_front - self.T_goal))
             else: 
                 diff_T= np.sum(np.abs(Temps_front - self.T_goal))
                 max_diff = np.max(np.abs(Temps_front - self.T_goal))
 
             if (diff_T>5)|(max_diff>3): 
-                print('Detector Temmperature: U = {0} °C, G = {1} °C, R = {2} °C, I = {3} °C'.format(Temps[0][0],Temps[1][0],Temps[2][0],Temps[3][0]))
+                print('Detector Temmperature:')
+                for i,cam in enumerate(DS_obj.bands):
+                    print('{0} = {1} °C'.format(cam,Temps[i][0]))
                 time.sleep(self.interval)
             else:
                 x = 0
-                print('Detector Temmperature: U = {0} °C, G = {1} °C, R = {2} °C, I = {3} °C'.format(Temps[0][0],Temps[1][0],Temps[2][0],Temps[3][0]))
+                print('Detector Temmperature:')
+                for i,cam in enumerate(DS_obj.bands):
+                    print('{0} = {1} °C'.format(cam,Temps[i][0]))
+                #print('Detector Temmperature: U = {0} °C, G = {1} °C, R = {2} °C, I = {3} °C'.format(Temps[0][0],Temps[1][0],Temps[2][0],Temps[3][0]))
                 print('goal temperature reached to within threshold')
         pass         
             
@@ -312,8 +313,10 @@ if __name__ == "__main__":
         plan.execute()
         print('Finished plan successfully')
     except Exception as e:
+        import ipdb; ipdb.set_trace()
         plan.DS_obj.disconnect()
         print(f"An error occurred: {e}")
         sys.exit(1)
 
+            
             

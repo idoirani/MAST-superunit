@@ -11,17 +11,17 @@ CameraIP_1 = '192.168.1.231'
 CameraIP_2 = '192.168.1.232'
 CameraIP_3 = '192.168.1.233'
 CameraIP_4 = '192.168.1.234'
-IPS = [CameraIP_1, CameraIP_2, CameraIP_3, CameraIP_4]
+IPS = [CameraIP_1, CameraIP_4, CameraIP_3]#, CameraIP_2, CameraIP_1]
 #IP/band mapping
 dic_band =  {'192.168.1.231' : 'U'
 			,'192.168.1.232' : 'G'
-			,'192.168.1.233' : 'R'
-			,'192.168.1.234' : 'I'}
+			,'192.168.1.234' : 'R'
+			,'192.168.1.233' : 'I'}
 #serial_numer/band mapping
 serial_numer_band =  {'192.168.1.231' :'ELSEi100365' 
 					 ,'192.168.1.232' :'ELSEi100366' 
 					 ,'192.168.1.233' :'ELSEi100367' 
-					 ,'192.168.1.234' :'ELSEi100368'}
+					 ,'192.168.1.231' :'ELSEi100368'}
 
 
 #standard header key/value paris
@@ -31,7 +31,7 @@ FITS_std_head = {'NAXIS':'2',
 				 ,'DETECTOR':'GE 1024 1024 BI DD'}
 
 #readout speed keyword dictionary
-speed = {-1: 'NULL', 0: '1 MHz', 3: '3 MHz', 5:'500 kHz',6:'50 kHz'}
+speed = {-1: 'NULL', 0: '1 MHz', 3: '3 MHz', 4:'500 kHz',5:'250 kHz', 6:'100 kHz',7:'50 kHz'}
 
 
 FITS_HEADER_comment =   {'TELESCOPE': 'TELESCOPE NAME'

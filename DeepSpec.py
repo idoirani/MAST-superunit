@@ -127,7 +127,7 @@ class CamAPI(object):
             self.logger.info('   ok')
             _ = ge.TemperatureControl_Init(addr = self.id)
             ge.SetBitDepth(4)
-            self.logger.info('Switching off LED: ' + str(ge.SetLEDStatus(False)))
+            self.logger.info('Switching off LED: ' + str(self.LEDchange(False)))
             return True
         else:
             self.logger.error('   Initialization failed. Status: {0}'.format(ge.StatusMSG))
@@ -315,7 +315,7 @@ class CamAPI(object):
         return exp
     
 
-    def set_readout_speed(self, readoutSpeed = 5):
+    def set_readout_speed(self, readoutSpeed = 7):
         '''
         # sets the readout frequency (pixels/sec) for measurements
         # IN:       readoutSpeed        
@@ -470,7 +470,19 @@ class CamAPI(object):
         else: 
             self.logger.error('failed setting temperature')
         return temp_thread
-    
+    def LEDchange(self, status):
+        '''
+        # Initiates a measurement with the current settings and returns the image data and header. 
+        # IN:       t_exp            exposure time [s]. Default is the current setting self.t_exp
+        # OUT:      hdul             FITS file with image data and header
+        last update: 24-12-2023
+        author: Ido Irani
+        '''
+        success = ge.SetLEDStatus(status, addr = self.id)
+        if success:
+            self.LED = status
+        return success
+
     def expose(self,t_exp = -1, verbose=True):
         '''
         # Initiates a measurement with the current settings and returns the image data and header. 
@@ -491,8 +503,9 @@ class CamAPI(object):
             _ = self.set_exposure_time(t_exp)
         if not self.cooled: 
             self.logger.warning('Warning: detector is not cooled. Signal to noise may be severly affected')
-        start_time = time.localtime()
-        ge.SetLEDStatus(False, addr = self.id)
+        start_time = time.localtime() 
+        timer = time.time()
+        self.LEDchange(False)
         time.sleep(0.5)
         measure = ge.StartMeasurement_DynBitDepth(addr = self.id)
         if measure:
@@ -500,15 +513,17 @@ class CamAPI(object):
                 self.logger.info('   measurement started')
                 self.logger.info('   waiting, while DLL is busy')
             t_meas = 0
-            t_crit = t_exp + 10  # seconds for measurement timeout
+            t_crit = t_exp + 25  # seconds for measurement timeout
             dt = 0.1
+            time.sleep(1)
             while self.DLLisbusy():
                 time.sleep(dt)
-                t_meas = t_meas + dt
+                t_meas = time.time() - timer
                 if (t_meas >= t_crit):  # if measurement takes took long
                     if ge.StopMeasurement(addr = self.id) == True:
                         import ipdb; ipdb.set_trace()
                         self.logger.error('measurement stopped, measurement took too long')
+                        #return False
             end_time = time.localtime()
             utc_start_time = time.gmtime(time.mktime(start_time))
             utc_end_time = time.gmtime(time.mktime(end_time))
@@ -523,7 +538,7 @@ class CamAPI(object):
             utc_start_time = time.strftime("%Y-%m-%dT%H:%M:%S", utc_start_time)
             utc_end_time = time.strftime("%Y-%m-%dT%H:%M:%S", utc_end_time)
             utc_mid_time = time.strftime("%Y-%m-%dT%H:%M:%S", utc_mid_time)
-            ge.SetLEDStatus(True, addr = self.id)
+            #ge.SetLEDStatus(True, addr = self.id)
 
             if verbose:
                 self.logger.info('   ...finished\n')
@@ -570,7 +585,7 @@ class DeepSpecAPI(object):
     last update: 24-12-2023
     author: Ido Irani
     '''
-    def __init__(self, IP = [CameraIP_1, CameraIP_2, CameraIP_3, CameraIP_4]):
+    def __init__(self, IP = IPS):
         self.IP = IP
         self.n_cams = len(IP)
         self.connected = False
@@ -729,7 +744,7 @@ class DeepSpecAPI(object):
         PLACEHOLDER for slit control
         '''
         return True
-    def start_up(self, t_exp_s = 1e-3, binning = [1,1], readoutSpeed = 5):
+    def start_up(self, t_exp_s = 1e-3, binning = [1,1], readoutSpeed = 7):
         '''
         Startup DeepSpec. 
         OUT:      ready           boolean flag for readeness of DeepSpec
@@ -773,21 +788,27 @@ class DeepSpecAPI(object):
         author: Ido Irani
         '''
         hdul = [None] * self.n_cams
+
         def thread_function(camera, hdul, index):
             hdu = camera.expose(t_exp, verbose)
             hdul[index] = hdu[0]
         # Create a list to hold threads
         threads = []
         # Start a new thread for each camera
-        for i in range(self.n_cams):
-            thread = threading.Thread(target=thread_function, args=(self.cameras[i], hdul, i))
-            threads.append(thread)
-            thread.start()
-        # Wait for all threads to complete
-        for thread in threads:
-            thread.join()
-        hdull = fits.HDUList(hdus=[])
-        for hdu in hdul: 
-            hdull.append(hdu)
+        if self.n_cams>1:
+            for i in range(self.n_cams):
+                thread = threading.Thread(target=thread_function, args=(self.cameras[i], hdul, i))
+                threads.append(thread)
+                thread.start()
+            # Wait for all threads to complete
+            for thread in threads:
+                thread.join()
+
+        else:
+            camera = self.cameras[0]
+            hdu = camera.expose(t_exp, verbose)
+            hdul[0] = hdu[0]
+        hdull = fits.HDUList(hdus=hdul)
+
         return hdull
     
