@@ -13,7 +13,7 @@ import astropy.io.fits as fits
 import time
 import os
 import numpy as np 
-
+from analysis import *
 import tkinter as tk
 from tkinter import simpledialog, messagebox, filedialog
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -42,6 +42,8 @@ class RealTimeGUI:
         self.T_goal = -70
         self.save_loc = ''
         self.grid_ind = {'U':[0,0],'G':[1,0],'R':[0,1],'I':[1,1]}
+        self.clim = None
+        self.auto_clim = False
         # Control Frame
         top_panel  = tk.Frame(master)
         top_panel.pack(side = 'top', pady=5)
@@ -110,6 +112,9 @@ class RealTimeGUI:
         
         self.col_range_button = tk.Button(left_panel, text="Set Column Range", command=self.set_col_range)
         self.col_range_button.pack(side="top", padx=5)
+
+        self.set_clim = tk.Button(left_panel, text="Set Intensity Range", command=self.set_clim)
+        self.set_clim.pack(side="top", padx=5)
 
         # Temperature Display
         self.temperature_label = tk.Label(master, text="Current Temperature: N/A", font=("Helvetica", 12))
@@ -271,7 +276,34 @@ class RealTimeGUI:
                 self.new_thresh = new_thresh
         except Exception as e:
             messagebox.showerror("Error", f"Invalid significance: {e}")
-    
+    def update_clim(self, data, All = False):
+        if All:
+            for i in range(len(data)):
+                maxi = np.max(data[i].data)
+                if self.clim is not None: 
+                    clim_old = self.clim[1]
+                    clim_new = maxi
+                    clim_update = max(clim_old,clim_new)
+                    clim_update = max(0,clim_update)
+                    self.clim = [0,clim_update]
+                elif self.clim is None:
+                    clim_new = maxi
+                    clim_new = max(0,clim_new)
+                    self.clim = [0,clim_new]
+        else:    
+            maxi = np.max(data)
+            if self.clim is not None: 
+                clim_old = self.clim[1]
+                clim_new = maxi
+                clim_update = max(clim_old,clim_new)
+                clim_update = max(0,clim_update)
+                self.clim = [0,clim_update]
+            elif self.clim is None:
+                clim_new = maxi
+                clim_new = max(0,clim_new)
+                self.clim = [0,clim_new]
+        return self.clim
+
     def take_bkg(self):
         try:
             bkg = DS_obj.expose(t_exp=self.t_exp)  # Capture the bkg image
@@ -304,7 +336,7 @@ class RealTimeGUI:
                     ax.set_xlabel(f"{band}: {timestamp}")
         except Exception as e:
             messagebox.showerror("Error", f"failed to take bkg. Error msg: {e}")
-            import ipdb; ipdb.set_trace()  
+        self.clim = None
         pass
     def set_camera_index(self):
         try:
@@ -321,6 +353,7 @@ class RealTimeGUI:
         except Exception as e: 
             messagebox.showerror("Error", f"Failed to refresh image: {e}")
         pass
+
     def set_row_range(self):
         try:
             start = simpledialog.askinteger("Row Range Start", "Enter start row:", initialvalue=self.row_range[0])
@@ -348,6 +381,29 @@ class RealTimeGUI:
                 messagebox.showerror("Error", "Invalid column range.")
         except Exception as e:
             messagebox.showerror("Error", f"Invalid column range: {e}")
+        try: 
+            if self.img_hdul is not None: 
+                self.refresh_plot()
+        except Exception as e: 
+            messagebox.showerror("Error", f"Failed to refresh image: {e}")
+        pass
+
+    def set_clim(self):
+        
+        Set_clim_auto = messagebox.askyesno("Set Intensity Range",'Do you want to autoscale (using the absolute min/max values across all cameras?)')
+        if Set_clim_auto:
+            self.auto_clim = True
+        else:
+            self.auto_clim = False
+            try:
+                start = simpledialog.askinteger("Set Intensity Range", "Enter black point:", initialvalue=0)
+                end = simpledialog.askinteger("Set Intensity Range", "Enter white point:", initialvalue=100000)
+                if start is not None and (end is None or end > start):
+                    self.clim = [start, end]
+                else:
+                    messagebox.showerror("Error", "Invalid Intensity Range.")
+            except Exception as e:
+                messagebox.showerror("Error", f"Invalid Intensity Range: {e}")
         try: 
             if self.img_hdul is not None: 
                 self.refresh_plot()
@@ -384,6 +440,8 @@ class RealTimeGUI:
                 messagebox.showerror("Error", f"Failed to capture image: {e}")
                 self.stop_sequence()
     def refresh_plot(self):
+        if not self.auto_clim:
+            clim = self.clim
         if self.ind < len(self.img_hdul):
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             if self.ALL:
@@ -392,11 +450,14 @@ class RealTimeGUI:
                     ax = self.ax_grid[ind[0],ind[1]]
                     data = self.img_hdul[i].data.T  # Transpose the image for FWHM computation
                     data = data.astype(float)
-                    if self.bkg_hdul is not None: 
-                        background = self.bkg_hdul[i].data.T
+                    if self.bkg_hdul is not None:
+                        if self.auto_clim:
+                            clim = self.update_clim(self.img_sub_hdul, All = True)
+                        self.display_image(self.img_sub_hdul[i].data.T, timestamp, ax = ax, clim = clim)  # Display the selected camera's image
                     else: 
-                        background = np.zeros_like(data)
-                    self.display_image(data-background, timestamp, ax = ax)  # Display the selected camera's image
+                        if self.auto_clim:
+                            clim = self.update_clim(self.img_hdul, All = True)
+                        self.display_image(self.img_hdul[i].data.T, timestamp, ax = ax, clim = clim)
                     band = DS_obj.bands[i]
                     ax.set_xlabel(f"{band}: {timestamp}")
 
@@ -406,23 +467,33 @@ class RealTimeGUI:
             else:
                 data = self.img_hdul[self.ind].data.T  # Transpose the image for FWHM computation
                 data = data.astype(float)
+                ax = self.ax_image
                 if self.bkg_hdul is not None: 
-                    background = self.bkg_hdul[self.ind].data.T
+                    if self.auto_clim:
+                        clim = self.update_clim(self.img_sub_hdul[self.ind].data)
+                    self.display_image(self.img_sub_hdul[self.ind].data.T, timestamp, ax = ax, clim = clim)  # Display the selected camera's image
                 else: 
-                    background = np.zeros_like(data)
-                self.display_image(data-background, timestamp, ax = self.ax_image)  # Display the selected camera's image
+                   if self.auto_clim:
+                        clim = self.update_clim(self.img_hdul[self.ind].data)
+                   self.display_image(self.img_hdul[self.ind].data.T, timestamp, ax = ax, clim = clim)
         else:
             if not self.ALL:
                 self.ax_image.clear()
                 self.ax_image.set_title(f"Camera {self.ind} not available")
                 self.canvas.draw()
+        self.clim = None
+        pass
 
-    def display_image(self, image_data, timestamp, ax):
+    def display_image(self, image_data, timestamp, ax, clim = None):
         cropped_data = image_data[
             self.row_range[0] : self.row_range[1],
             self.col_range[0] : self.col_range[1],
         ]
-        ax.imshow(cropped_data)
+        if clim is not None:
+            ax.imshow(cropped_data,vmin = clim[0], vmax = clim[1] )
+        else:
+            ax.imshow(cropped_data)
+            
         if not self.ALL:
             ax.set_title(f"Real-Time Exposure (Camera {self.ind})")
             ax.set_xlabel(f"Timestamp: {timestamp}")
@@ -489,16 +560,26 @@ class WrapperGUI:
             messagebox.showerror("Error", f"Failed to launch GUI with type {gui_type}: {e}")
 
 
+def on_closing():
+    """Ensure the program exits cleanly."""
+    if messagebox.askokcancel("Quit", "Do you want to quit?"):
+        root.destroy()  # Close the main Tk window
+        sys.exit()  # Ensure the Python process terminates
+
 
 # Main Application
 if __name__ == "__main__":
     DS_obj = DeepSpecAPI()
     print('starting-up....')
-    DS_obj.start_up()
+    suc = DS_obj.connect()
+    if not suc:
+        DS_obj.disconnect()
+        DS_obj.connect()
     DS_obj.cool(T_goal = -70)
     for cam in DS_obj.cameras:
-        cam.set_readout_speed(3) #3 = 3MHz, 7 = 50Khz
+        cam.set_readout_speed(0) #3 = 3MHz, 7 = 50Khz
     root = tk.Tk()
     WrapperGUI(root)
+    root.protocol("WM_DELETE_WINDOW", on_closing)  # Handle window close event
     root.mainloop()
 
