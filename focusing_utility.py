@@ -428,7 +428,7 @@ class RealTimeGUI:
                    for i in range(len(img)):
                        ihdu = ihdul[i]
                        bhdu = self.bkg_hdul[i]
-                       isub_hdu = fits.ImageHDU(data=ihdu.data - bhdu.data, header=phdu.header)
+                       isub_hdu = fits.ImageHDU(data=ihdu.data - bhdu.data, header=ihdu.header)
                        isub_hdu.header['TYPE'] = 'BKG SUB'
                        isub_hdul.append(isub_hdu)
                    isub_hdul = fits.HDUList(hdus=isub_hdul)
