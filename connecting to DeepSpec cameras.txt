@@ -1,0 +1,32 @@
+When setting up a new computer with a DeepSpec camera, one must first set up the ethernet adaptor's IP address. 
+Typically, IP assignment is performed dynamically. The DeepSpec cameras are configured using a static IP address. The default network settings for a cemra are the following: 
+
+IP address: 192.168.1.234
+Subnet Mask: 255.255.255.0
+Gateway: 192.168.1.1
+Server Port: 12345 (TCP)
+
+
+The only camera that can connect using the Greateyes software are the ones with 192.168.1.234. However, when connecting simultaneously to more than one camera, we must assign a different address to each detector. I have done this using 192.168.1.231 - 192.168.1.234. The connection is done using the python SDK of the camera, wrapped by either my code or Arie's version. 
+
+Either way, one must configure the computer to have an IP address with 192.168.1.xxx so that xxx is different than all cameras. I typically use 235. 
+
+For the other definition use: 
+
+subnet mask (or subnet bit length): 255.255.255.0 (or 24)
+
+DNS: 8.8.8.8
+alternate DNS: 8.8.4.4
+
+
+Once the IP is configured properly, you can check the camera is connected. Simply enter the detector IP address in a browser (or type "ping 192.168.1.234" in the winkey+R, cmd terminal). The browser should open a Greateyes configuration page for the detector (user: admin, pass: greateyes). this is where you can change the IP address of the detector unit, and see its serial number and other settings. 
+
+
+Once a Detector is connected (either using the sdk or the software), one should know that the detectors open a websocket that doesn't close properly if the connection terminates unexpectedly. This blocks the user from opening a new connection until the power is cut to the detector. If this happens, shut down the power and restart the cameras. 
+
+
+ 
+
+ 
+
+
